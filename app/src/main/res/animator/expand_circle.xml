@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:ordering="together">
+
+    <objectAnimator
+        android:propertyName="pathData"
+        android:duration="1500"
+        android:valueFrom="M50,50 m0,0 a0,0 0 1,1 0,0 a0,0 0 1,1 0,0"
+        android:valueTo="M50,50 m0,45 a45,45 0 1,1 0,-90 a45,45 0 1,1 0,90"
+        android:valueType="pathType"
+        android:repeatCount="infinite"
+        android:repeatMode="restart"
+        android:interpolator="@android:interpolator/linear_out_slow_in"/>
+
+    <objectAnimator
+        android:propertyName="strokeAlpha"
+        android:duration="1500"
+        android:valueFrom="0.7"
+        android:valueTo="0"
+        android:valueType="floatType"
+        android:repeatCount="infinite"
+        android:repeatMode="restart"
+        android:interpolator="@android:interpolator/linear"/>
+
+</set>
