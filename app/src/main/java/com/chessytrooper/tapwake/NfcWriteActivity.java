@@ -11,6 +11,7 @@ import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.Ndef;
+import android.nfc.tech.NdefFormatable;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -39,6 +40,7 @@ public class NfcWriteActivity extends AppCompatActivity {
     private ObjectAnimator rotationAnimator;
     private AnimatedVectorDrawable expandingCircleAnimation;
     private String alarmData;
+    private Tag detectedTag;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,36 +65,46 @@ public class NfcWriteActivity extends AppCompatActivity {
             flags = PendingIntent.FLAG_IMMUTABLE;
         }
         pendingIntent = PendingIntent.getActivity(
-                this, 0, new Intent(this, getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), flags);
+                this, 0, new Intent(this, getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                PendingIntent.FLAG_MUTABLE);
 
-        IntentFilter ndef = new IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED);
+        IntentFilter tagDetected = new IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED);
+        IntentFilter ndefDetected = new IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED);
+        IntentFilter techDetected = new IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED);
+        intentFiltersArray = new IntentFilter[] {tagDetected, ndefDetected, techDetected};
+
+        techListsArray = new String[][] { new String[] { Ndef.class.getName() },
+                new String[] { NdefFormatable.class.getName() } };
+
+
         try {
-            ndef.addDataType("*/*");
+            ndefDetected.addDataType("application/json");
         } catch (IntentFilter.MalformedMimeTypeException e) {
             throw new RuntimeException("fail", e);
         }
-        intentFiltersArray = new IntentFilter[]{ndef,};
+        intentFiltersArray = new IntentFilter[]{ndefDetected,};
         techListsArray = new String[][]{new String[]{Ndef.class.getName()}};
 
         alarmData = createAlarmJson();
+
+        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction()) ||
+                NfcAdapter.ACTION_TECH_DISCOVERED.equals(getIntent().getAction()) ||
+                NfcAdapter.ACTION_TAG_DISCOVERED.equals(getIntent().getAction())) {
+            onNewIntent(getIntent());
+        }
 
         setupUI();
     }
 
     private void setupUI() {
-//        rotationAnimator = ObjectAnimator.ofFloat(scanningCircle, "rotation", 0f, 360f);
-//        rotationAnimator.setDuration(2000);
-//        rotationAnimator.setRepeatCount(ObjectAnimator.INFINITE);
-//        rotationAnimator.setInterpolator(new LinearInterpolator());
-
         actionButton.setText("Scanning");
         actionButton.setEnabled(false);
-        //rotationAnimator.start();
 
         actionButton.setOnClickListener(v -> {
             if (actionButton.getText().equals("Upload")) {
                 actionButton.setText("Uploading");
                 actionButton.setEnabled(false);
+                writeNfcTag(detectedTag); // We'll define detectedTag as a class member
             } else if (actionButton.getText().equals("Back to Home")) {
                 finish();
             }
@@ -125,20 +137,36 @@ public class NfcWriteActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction())) {
-            Tag detectedTag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+        setIntent(intent);
+        resolveIntent(intent);
+    }
+
+    private void resolveIntent(Intent intent) {
+        String action = intent.getAction();
+        if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
+                || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
+                || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
+            detectedTag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
             if (detectedTag != null) {
-                if (expandingCircleAnimation != null && expandingCircleAnimation.isRunning()) {
-                    expandingCircleAnimation.stop();
-                }
-                scanningCircle.setVisibility(View.GONE);
-                actionButton.setText("Upload");
-                actionButton.setEnabled(true);
+                // NFC Tag detected
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "NFC Tag Detected", Toast.LENGTH_SHORT).show();
+                    if (expandingCircleAnimation != null && expandingCircleAnimation.isRunning()) {
+                        expandingCircleAnimation.stop();
+                    }
+                    scanningCircle.setVisibility(View.GONE);
+                    actionButton.setText("Upload");
+                    actionButton.setEnabled(true);
+                });
             }
         }
     }
-
     private void writeNfcTag(Tag tag) {
+        if (tag == null) {
+            Toast.makeText(this, "No NFC tag detected", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         try {
             Ndef ndef = Ndef.get(tag);
             if (ndef != null) {
@@ -147,20 +175,43 @@ public class NfcWriteActivity extends AppCompatActivity {
                 NdefMessage ndefMessage = new NdefMessage(mimeRecord);
                 ndef.writeNdefMessage(ndefMessage);
                 ndef.close();
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "Alarm data written to NFC tag", Toast.LENGTH_LONG).show();
-                    actionButton.setText("Back to Home");
-                    actionButton.setEnabled(true);
-                });
+                showWriteSuccessMessage();
+            } else {
+                NdefFormatable format = NdefFormatable.get(tag);
+                if (format != null) {
+                    try {
+                        format.connect();
+                        NdefRecord mimeRecord = NdefRecord.createMime("application/json", alarmData.getBytes(Charset.forName("US-ASCII")));
+                        NdefMessage ndefMessage = new NdefMessage(mimeRecord);
+                        format.format(ndefMessage);
+                        format.close();
+                        showWriteSuccessMessage();
+                    } catch (IOException | FormatException e) {
+                        showWriteErrorMessage();
+                    }
+                } else {
+                    showWriteErrorMessage();
+                }
             }
-        } catch (IOException | FormatException e) {
-            e.printStackTrace();
-            runOnUiThread(() -> {
-                Toast.makeText(this, "Error writing to NFC tag", Toast.LENGTH_LONG).show();
-                actionButton.setText("Upload");
-                actionButton.setEnabled(true);
-            });
+        } catch (Exception e) {
+            showWriteErrorMessage();
         }
+    }
+
+    private void showWriteSuccessMessage() {
+        runOnUiThread(() -> {
+            Toast.makeText(this, "Alarm data written to NFC tag", Toast.LENGTH_LONG).show();
+            actionButton.setText("Back to Home");
+            actionButton.setEnabled(true);
+        });
+    }
+
+    private void showWriteErrorMessage() {
+        runOnUiThread(() -> {
+            Toast.makeText(this, "Error writing to NFC tag", Toast.LENGTH_LONG).show();
+            actionButton.setText("Upload");
+            actionButton.setEnabled(true);
+        });
     }
 
     private String createAlarmJson() {
@@ -172,7 +223,7 @@ public class NfcWriteActivity extends AppCompatActivity {
             json.put("date", intent.getStringExtra("ALARM_DATE"));
             json.put("description", intent.getStringExtra("ALARM_DESCRIPTION"));
             json.put("sound", intent.getStringExtra("ALARM_SOUND"));
-            json.put("vibration", intent.getBooleanExtra("ALARM_VIBRATION", true));
+            json.put("duration", intent.getIntExtra("ALARM_DURATION", 5 * 60 * 1000));
         } catch (JSONException e) {
             e.printStackTrace();
         }

@@ -23,4 +23,9 @@ public class MainActivity extends AppCompatActivity {
         Intent i = new Intent(this, AddAlarmActivity.class);
         startActivity(i);
     }
+
+    public void openReadAlarm(View view) {
+        Intent i = new Intent(this, ReadAlarmActivity.class);
+        startActivity(i);
+    }
 }

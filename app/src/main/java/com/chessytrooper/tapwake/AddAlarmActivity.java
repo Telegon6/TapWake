@@ -1,7 +1,10 @@
 package com.chessytrooper.tapwake;
 
+import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.content.Intent;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -9,6 +12,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
@@ -30,6 +34,8 @@ public class AddAlarmActivity extends AppCompatActivity {
     private TextView wordCountTextView;
     private Calendar calendar;
     private static final int MAX_WORDS = 100;
+    private static final int RINGTONE_PICKER_REQUEST_CODE = 1;
+    private Uri selectedAlarmSound;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +44,12 @@ public class AddAlarmActivity extends AppCompatActivity {
 
         MaterialToolbar toolbar = findViewById(R.id.materialToolbar);
         setSupportActionBar(toolbar);
+
+        Button selectSoundButton = findViewById(R.id.selectSoundButton);
+        selectSoundButton.setOnClickListener(v -> openRingtonePicker());
+
+        // Set default alarm sound
+        selectedAlarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
 
         timePicker = findViewById(R.id.timePicker);
         dateEditText = findViewById(R.id.editTextDate);
@@ -123,21 +135,35 @@ public class AddAlarmActivity extends AppCompatActivity {
         addAlarmButton.setEnabled(isDateSelected && isDescriptionEntered);
     }
 
+    private void openRingtonePicker() {
+        Intent intent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM);
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select Alarm Sound");
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, selectedAlarmSound);
+        startActivityForResult(intent, RINGTONE_PICKER_REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == RINGTONE_PICKER_REQUEST_CODE && resultCode == RESULT_OK) {
+            selectedAlarmSound = data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+        }
+    }
+
     private void addAlarm() {
         int hour = timePicker.getHour();
         int minute = timePicker.getMinute();
         String date = dateEditText.getText().toString();
         String description = descriptionEditText.getText().toString();
 
-        // Create an Intent to start the NfcWriteActivity
         Intent intent = new Intent(this, NfcWriteActivity.class);
         intent.putExtra("ALARM_HOUR", hour);
         intent.putExtra("ALARM_MINUTE", minute);
         intent.putExtra("ALARM_DATE", date);
         intent.putExtra("ALARM_DESCRIPTION", description);
-        // Add default values for sound and vibration
-        intent.putExtra("ALARM_SOUND", "default_sound");
-        intent.putExtra("ALARM_VIBRATION", true);
+        intent.putExtra("ALARM_SOUND", selectedAlarmSound.toString());
+        intent.putExtra("ALARM_DURATION", 5 * 60 * 1000); // 5 minutes in milliseconds
 
         startActivity(intent);
     }
