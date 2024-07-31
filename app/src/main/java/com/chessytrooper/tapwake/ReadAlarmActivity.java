@@ -4,16 +4,17 @@ import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.drawable.AnimatedVectorDrawable;
+import android.nfc.FormatException;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.Ndef;
-import android.nfc.tech.NdefFormatable;
 import android.os.Bundle;
-import android.view.View;
+import android.os.Parcelable;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,8 +22,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 public class ReadAlarmActivity extends AppCompatActivity {
 
@@ -30,8 +32,11 @@ public class ReadAlarmActivity extends AppCompatActivity {
     private PendingIntent pendingIntent;
     private IntentFilter[] intentFiltersArray;
     private String[][] techListsArray;
-    private Button actionButton;
+
+    private TextView actionText;
     private ImageView scanningCircle;
+    private ImageView scanningBackground;
+    private Button actionButton;
     private AnimatedVectorDrawable expandingCircleAnimation;
 
     @Override
@@ -39,12 +44,25 @@ public class ReadAlarmActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_read_alarm);
 
+        initViews();
+        setupNfc();
+
+        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction())) {
+            processIntent(getIntent());
+        }
+    }
+
+    private void initViews() {
         scanningCircle = findViewById(R.id.scanningCircle);
+        scanningBackground = findViewById(R.id.scanningBackground);
         actionButton = findViewById(R.id.actionButton);
+        actionText = findViewById(R.id.actionText);
 
         expandingCircleAnimation = (AnimatedVectorDrawable) getDrawable(R.drawable.expanding_circle);
         scanningCircle.setImageDrawable(expandingCircleAnimation);
+    }
 
+    private void setupNfc() {
         nfcAdapter = NfcAdapter.getDefaultAdapter(this);
         if (nfcAdapter == null) {
             Toast.makeText(this, "This device doesn't support NFC.", Toast.LENGTH_LONG).show();
@@ -52,47 +70,19 @@ public class ReadAlarmActivity extends AppCompatActivity {
             return;
         }
 
-        int flags = 0;
-        pendingIntent = PendingIntent.getActivity(
-                this, 0, new Intent(this, getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), flags | PendingIntent.FLAG_IMMUTABLE);
+        pendingIntent = PendingIntent.getActivity(this, 0,
+                new Intent(this, getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                PendingIntent.FLAG_MUTABLE);
 
-        IntentFilter tagDetected = new IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED);
-        IntentFilter ndefDetected = new IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED);
-        IntentFilter techDetected = new IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED);
-        intentFiltersArray = new IntentFilter[] {tagDetected, ndefDetected, techDetected};
-
-        techListsArray = new String[][] { new String[] { Ndef.class.getName() },
-                new String[] { NdefFormatable.class.getName() } };
-
-        // Handle NFC detection if the activity was started by an NFC intent
-        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction()) ||
-                NfcAdapter.ACTION_TECH_DISCOVERED.equals(getIntent().getAction()) ||
-                NfcAdapter.ACTION_TAG_DISCOVERED.equals(getIntent().getAction())) {
-            onNewIntent(getIntent());
-        }
+        IntentFilter ndefFilter = new IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED);
         try {
-            ndefDetected.addDataType("application/json");
+            ndefFilter.addDataType("application/json");
         } catch (IntentFilter.MalformedMimeTypeException e) {
-            throw new RuntimeException("fail", e);
+            throw new RuntimeException("Failed to add MIME type.", e);
         }
-        intentFiltersArray = new IntentFilter[]{ndefDetected,};
+
+        intentFiltersArray = new IntentFilter[]{ndefFilter,};
         techListsArray = new String[][]{new String[]{Ndef.class.getName()}};
-
-        setupUI();
-    }
-
-    private void setupUI() {
-        actionButton.setText("Scanning");
-        actionButton.setEnabled(false);
-
-        actionButton.setOnClickListener(v -> {
-            if (actionButton.getText().equals("Download")) {
-                actionButton.setText("Downloading");
-                actionButton.setEnabled(false);
-            } else if (actionButton.getText().equals("Back to Home")) {
-                finish();
-            }
-        });
     }
 
     @Override
@@ -120,57 +110,57 @@ public class ReadAlarmActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction())) {
-            Tag detectedTag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
-            if (detectedTag != null) {
-                Ndef ndef = Ndef.get(detectedTag);
-                if (ndef != null) {
-                    try {
-                        ndef.connect();
-                        NdefMessage ndefMessage = ndef.getNdefMessage();
-                        NdefRecord[] records = ndefMessage.getRecords();
-                        if (records.length > 0) {
-                            NdefRecord record = records[0];
-                            String alarmData = new String(record.getPayload(), Charset.forName("US-ASCII"));
-                            executeAlarm(alarmData);
-                        }
-                        ndef.close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, "NFC Tag Detected", Toast.LENGTH_SHORT).show();
-                        if (expandingCircleAnimation != null && expandingCircleAnimation.isRunning()) {
-                            expandingCircleAnimation.stop();
-                        }
-                        scanningCircle.setVisibility(View.GONE);
-                        actionButton.setText("Download");
-                        actionButton.setEnabled(true);
-                    });
-                }
+        setIntent(intent);
+        processIntent(intent);
+    }
+
+    private void processIntent(Intent intent) {
+        Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+        if (tag == null) {
+            Toast.makeText(this, "No NFC tag detected", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Ndef ndef = Ndef.get(tag);
+        if (ndef == null) {
+            Toast.makeText(this, "Tag is not NDEF formatted", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        NdefMessage ndefMessage = ndef.getCachedNdefMessage();
+        if (ndefMessage == null) {
+            try {
+                Toast.makeText(this, "NFC successfully read", Toast.LENGTH_SHORT).show();
+                ndef.connect();
+                ndefMessage = ndef.getNdefMessage();
+                ndef.close();
+            } catch (IOException | FormatException e) {
+                Toast.makeText(this, "Error reading NFC tag", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
+                return;
             }
+        }
+
+        if (ndefMessage != null && ndefMessage.getRecords().length > 0) {
+            NdefRecord ndefRecord = ndefMessage.getRecords()[0];
+            if (ndefRecord.getTnf() == NdefRecord.TNF_MIME_MEDIA &&
+                    ndefRecord.toMimeType().equals("application/json")) {
+                String payload = new String(ndefRecord.getPayload(), StandardCharsets.UTF_8);
+                showAlarmDetails(payload);
+                Toast.makeText(this, "NFC payload", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "NFC tag doesn't contain valid alarm data", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            Toast.makeText(this, "NFC tag is empty", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void executeAlarm(String alarmData) {
-        try {
-            JSONObject alarmJson = new JSONObject(alarmData);
-            int hour = alarmJson.getInt("hour");
-            int minute = alarmJson.getInt("minute");
-            String date = alarmJson.getString("date");
-            String description = alarmJson.getString("description");
-            String sound = alarmJson.getString("sound");
-            int duration = alarmJson.getInt("duration");
-
-            Intent serviceIntent = new Intent(this, AlarmService.class);
-            serviceIntent.putExtra("ALARM_SOUND", sound);
-            serviceIntent.putExtra("ALARM_DURATION", duration);
-            startService(serviceIntent);
-
-            Toast.makeText(this, "Alarm set for " + hour + ":" + minute + " on " + date, Toast.LENGTH_LONG).show();
-        } catch (JSONException e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Failed to parse alarm data", Toast.LENGTH_LONG).show();
-        }
+    private void showAlarmDetails(String alarmData) {
+        // Fallback in case startActivity doesn't work
+        Toast.makeText(this, "Attempting to show alarm details", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, AlarmDetailsActivity.class);
+        intent.putExtra("ALARM_DATA", alarmData);
+        startActivity(intent);
     }
 }

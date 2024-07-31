@@ -18,6 +18,7 @@ import android.view.View;
 import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -36,7 +37,9 @@ public class NfcWriteActivity extends AppCompatActivity {
     private String[][] techListsArray;
 
     private ImageView scanningCircle;
+    private ImageView scanningBackground;
     private Button actionButton;
+    private TextView actionText;
     private ObjectAnimator rotationAnimator;
     private AnimatedVectorDrawable expandingCircleAnimation;
     private String alarmData;
@@ -48,7 +51,9 @@ public class NfcWriteActivity extends AppCompatActivity {
         setContentView(R.layout.activity_nfc_write);
 
         scanningCircle = findViewById(R.id.scanningCircle);
+        scanningBackground = findViewById(R.id.scanningBackground);
         actionButton = findViewById(R.id.actionButton);
+        actionText = findViewById(R.id.actionText);
 
         expandingCircleAnimation = (AnimatedVectorDrawable) getDrawable(R.drawable.expanding_circle);
         scanningCircle.setImageDrawable(expandingCircleAnimation);
@@ -98,6 +103,7 @@ public class NfcWriteActivity extends AppCompatActivity {
 
     private void setupUI() {
         actionButton.setText("Scanning");
+        actionText.setText("Place Tag close to your device");
         actionButton.setEnabled(false);
 
         actionButton.setOnClickListener(v -> {
@@ -106,9 +112,16 @@ public class NfcWriteActivity extends AppCompatActivity {
                 actionButton.setEnabled(false);
                 writeNfcTag(detectedTag); // We'll define detectedTag as a class member
             } else if (actionButton.getText().equals("Back to Home")) {
-                finish();
+                navigateToHomepage();
             }
         });
+    }
+
+    private void navigateToHomepage() {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
     }
 
     @Override
@@ -155,6 +168,8 @@ public class NfcWriteActivity extends AppCompatActivity {
                         expandingCircleAnimation.stop();
                     }
                     scanningCircle.setVisibility(View.GONE);
+                    scanningBackground.setVisibility(View.VISIBLE);
+                    actionText.setText("Tag detected");
                     actionButton.setText("Upload");
                     actionButton.setEnabled(true);
                 });
@@ -201,6 +216,7 @@ public class NfcWriteActivity extends AppCompatActivity {
     private void showWriteSuccessMessage() {
         runOnUiThread(() -> {
             Toast.makeText(this, "Alarm data written to NFC tag", Toast.LENGTH_LONG).show();
+            actionText.setText("Uploaded");
             actionButton.setText("Back to Home");
             actionButton.setEnabled(true);
         });

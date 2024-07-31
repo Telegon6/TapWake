@@ -45,6 +45,8 @@ public class AddAlarmActivity extends AppCompatActivity {
         MaterialToolbar toolbar = findViewById(R.id.materialToolbar);
         setSupportActionBar(toolbar);
 
+        toolbar.setNavigationOnClickListener(v -> onBackPressed());
+
         Button selectSoundButton = findViewById(R.id.selectSoundButton);
         selectSoundButton.setOnClickListener(v -> openRingtonePicker());
 
@@ -75,10 +77,12 @@ public class AddAlarmActivity extends AppCompatActivity {
         };
 
         dateEditText.setOnClickListener(v -> {
-            new DatePickerDialog(AddAlarmActivity.this, dateSetListener,
+            DatePickerDialog datePickerDialog = new DatePickerDialog(AddAlarmActivity.this, dateSetListener,
                     calendar.get(Calendar.YEAR),
                     calendar.get(Calendar.MONTH),
-                    calendar.get(Calendar.DAY_OF_MONTH)).show();
+                    calendar.get(Calendar.DAY_OF_MONTH));
+            datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
+            datePickerDialog.show();
         });
     }
 
@@ -132,6 +136,7 @@ public class AddAlarmActivity extends AppCompatActivity {
     private void updateAddAlarmButtonState() {
         boolean isDateSelected = !dateEditText.getText().toString().isEmpty();
         boolean isDescriptionEntered = !descriptionEditText.getText().toString().isEmpty();
+
         addAlarmButton.setEnabled(isDateSelected && isDescriptionEntered);
     }
 
@@ -157,6 +162,16 @@ public class AddAlarmActivity extends AppCompatActivity {
         String date = dateEditText.getText().toString();
         String description = descriptionEditText.getText().toString();
 
+        Calendar current = Calendar.getInstance();
+        Calendar selected = (Calendar) calendar.clone();
+        selected.set(Calendar.HOUR_OF_DAY, hour);
+        selected.set(Calendar.MINUTE, minute);
+
+        if (selected.before(current)) {
+            Toast.makeText(this, "Cannot set an alarm in the past", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         Intent intent = new Intent(this, NfcWriteActivity.class);
         intent.putExtra("ALARM_HOUR", hour);
         intent.putExtra("ALARM_MINUTE", minute);
@@ -167,17 +182,4 @@ public class AddAlarmActivity extends AppCompatActivity {
 
         startActivity(intent);
     }
-
-//    private void addAlarm() {
-//        int hour = timePicker.getHour();
-//        int minute = timePicker.getMinute();
-//        String date = dateEditText.getText().toString();
-//        String description = descriptionEditText.getText().toString();
-//
-//        // TODO: Implement alarm creation logic here
-//        // For now, we'll just show a toast message
-//        String alarmInfo = String.format("Alarm set for %02d:%02d on %s\nDescription: %s",
-//                hour, minute, date, description);
-//        Toast.makeText(this, alarmInfo, Toast.LENGTH_LONG).show();
-//    }
 }
