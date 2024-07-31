@@ -11,10 +11,19 @@ Eventicker is an Android application that allows users to create and manage alar
 - Read alarm and event data from NFC tags
 - User-friendly interface with material design
 
+## Screenshots
+
+![Screenshot_20240801_000111_Eventicker](https://github.com/user-attachments/assets/641d88a6-0456-4497-bb9c-686e48465451)
+
+![Screenshot_20240801_000203_Eventicker](https://github.com/user-attachments/assets/215c5e3a-89b0-4e92-8d05-5012aac59038)
+
+![Screenshot_20240801_000216_Eventicker](https://github.com/user-attachments/assets/b4f164b0-8652-46bb-8108-4a2aa5453e27)
+
+
 ## Requirements
 
 - Android device with NFC capability
-- Android 5.0 (Lollipop) or higher
+- Android 6.0 (Marshmallow) or higher
 - NFC tags (NTAG203, NTAG213, or similar)
 
 ## Installation
@@ -22,6 +31,9 @@ Eventicker is an Android application that allows users to create and manage alar
 1. Clone this repository or download the ZIP file
 2. Open the project in Android Studio
 3. Build and run the app on your Android device
+
+APK Download You can download the APK for the Eventicker from the link below: 
+https://appetize.io/app/jp7yl5wuxiijkaqw4qkbxb2flq
 
 ## Usage
 
