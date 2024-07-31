@@ -15,7 +15,6 @@ import android.nfc.tech.NdefFormatable;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
-import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -38,6 +37,7 @@ public class NfcWriteActivity extends AppCompatActivity {
 
     private ImageView scanningCircle;
     private ImageView scanningBackground;
+    private ImageView mark;
     private Button actionButton;
     private TextView actionText;
     private ObjectAnimator rotationAnimator;
@@ -104,12 +104,12 @@ public class NfcWriteActivity extends AppCompatActivity {
     private void setupUI() {
         actionButton.setText("Scanning");
         actionText.setText("Place Tag close to your device");
-        actionButton.setEnabled(false);
+        actionButton.setVisibility(View.GONE);
 
         actionButton.setOnClickListener(v -> {
             if (actionButton.getText().equals("Upload")) {
                 actionButton.setText("Uploading");
-                actionButton.setEnabled(false);
+                actionButton.setVisibility(View.GONE);
                 writeNfcTag(detectedTag); // We'll define detectedTag as a class member
             } else if (actionButton.getText().equals("Back to Home")) {
                 navigateToHomepage();
@@ -171,7 +171,8 @@ public class NfcWriteActivity extends AppCompatActivity {
                     scanningBackground.setVisibility(View.VISIBLE);
                     actionText.setText("Tag detected");
                     actionButton.setText("Upload");
-                    actionButton.setEnabled(true);
+                    actionButton.setVisibility(View.VISIBLE);
+                    //actionButton.setEnabled(true);
                 });
             }
         }
@@ -218,7 +219,11 @@ public class NfcWriteActivity extends AppCompatActivity {
             Toast.makeText(this, "Alarm data written to NFC tag", Toast.LENGTH_LONG).show();
             actionText.setText("Uploaded");
             actionButton.setText("Back to Home");
-            actionButton.setEnabled(true);
+            actionButton.setBackgroundResource(R.drawable.button_bcground);
+
+            //actionButton.setEnabled(true);
+            scanningBackground.setVisibility(View.GONE);
+            mark.setVisibility(View.VISIBLE);
         });
     }
 

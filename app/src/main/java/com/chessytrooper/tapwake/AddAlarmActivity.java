@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
+import android.graphics.Color;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
@@ -30,6 +31,7 @@ public class AddAlarmActivity extends AppCompatActivity {
     private TimePicker timePicker;
     private EditText dateEditText;
     private EditText descriptionEditText;
+    private EditText editTextText;
     private Button addAlarmButton;
     private TextView wordCountTextView;
     private Calendar calendar;
@@ -47,19 +49,19 @@ public class AddAlarmActivity extends AppCompatActivity {
 
         toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
-        Button selectSoundButton = findViewById(R.id.selectSoundButton);
-        selectSoundButton.setOnClickListener(v -> openRingtonePicker());
-
         // Set default alarm sound
         selectedAlarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
 
         timePicker = findViewById(R.id.timePicker);
         dateEditText = findViewById(R.id.editTextDate);
         descriptionEditText = findViewById(R.id.editTextDescription);
+        editTextText = findViewById(R.id.editTextText);
         addAlarmButton = findViewById(R.id.button);
         wordCountTextView = findViewById(R.id.textView3);
 
         calendar = Calendar.getInstance();
+
+        addAlarmButton.setBackgroundColor(Color.parseColor("#808080"));
 
         setupDatePicker();
         setupDescriptionEditText();
@@ -134,10 +136,15 @@ public class AddAlarmActivity extends AppCompatActivity {
     }
 
     private void updateAddAlarmButtonState() {
+        boolean isNameEdit = !editTextText.getText().toString().isEmpty();
         boolean isDateSelected = !dateEditText.getText().toString().isEmpty();
         boolean isDescriptionEntered = !descriptionEditText.getText().toString().isEmpty();
 
-        addAlarmButton.setEnabled(isDateSelected && isDescriptionEntered);
+        addAlarmButton.setEnabled(isDateSelected && isDescriptionEntered && isNameEdit);
+
+        if (isDateSelected && isDescriptionEntered) {
+            addAlarmButton.setBackgroundColor(Color.parseColor("#0876E5"));
+        }
     }
 
     private void openRingtonePicker() {

@@ -11,7 +11,8 @@ import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.Ndef;
 import android.os.Bundle;
-import android.os.Parcelable;
+import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -19,15 +20,12 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
 public class ReadAlarmActivity extends AppCompatActivity {
 
+    private static final String TAG = "ReadAlarmActivity";
     private NfcAdapter nfcAdapter;
     private PendingIntent pendingIntent;
     private IntentFilter[] intentFiltersArray;
@@ -46,10 +44,6 @@ public class ReadAlarmActivity extends AppCompatActivity {
 
         initViews();
         setupNfc();
-
-        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction())) {
-            processIntent(getIntent());
-        }
     }
 
     private void initViews() {
@@ -57,6 +51,8 @@ public class ReadAlarmActivity extends AppCompatActivity {
         scanningBackground = findViewById(R.id.scanningBackground);
         actionButton = findViewById(R.id.actionButton);
         actionText = findViewById(R.id.actionText);
+
+        actionButton.setVisibility(View.GONE);
 
         expandingCircleAnimation = (AnimatedVectorDrawable) getDrawable(R.drawable.expanding_circle);
         scanningCircle.setImageDrawable(expandingCircleAnimation);
@@ -110,57 +106,41 @@ public class ReadAlarmActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        setIntent(intent);
-        processIntent(intent);
+        handleIntent(intent);
     }
 
-    private void processIntent(Intent intent) {
-        Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
-        if (tag == null) {
-            Toast.makeText(this, "No NFC tag detected", Toast.LENGTH_SHORT).show();
-            return;
-        }
+    private void handleIntent(Intent intent) {
+        String action = intent.getAction();
+        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
+            Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+            if (tag != null) {
+                Ndef ndef = Ndef.get(tag);
+                if (ndef == null) {
+                    Toast.makeText(this, "Tag is not NDEF.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-        Ndef ndef = Ndef.get(tag);
-        if (ndef == null) {
-            Toast.makeText(this, "Tag is not NDEF formatted", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        NdefMessage ndefMessage = ndef.getCachedNdefMessage();
-        if (ndefMessage == null) {
-            try {
-                Toast.makeText(this, "NFC successfully read", Toast.LENGTH_SHORT).show();
-                ndef.connect();
-                ndefMessage = ndef.getNdefMessage();
-                ndef.close();
-            } catch (IOException | FormatException e) {
-                Toast.makeText(this, "Error reading NFC tag", Toast.LENGTH_SHORT).show();
-                e.printStackTrace();
-                return;
+                NdefMessage ndefMessage = ndef.getCachedNdefMessage();
+                if (ndefMessage != null) {
+                    for (NdefRecord ndefRecord : ndefMessage.getRecords()) {
+                        if (ndefRecord.getTnf() == NdefRecord.TNF_MIME_MEDIA &&
+                                ndefRecord.toMimeType().equals("application/json")) {
+                            String payload = new String(ndefRecord.getPayload(), StandardCharsets.UTF_8);
+                            showAlarmDetails(payload);
+                            return;
+                        }
+                    }
+                }
             }
         }
-
-        if (ndefMessage != null && ndefMessage.getRecords().length > 0) {
-            NdefRecord ndefRecord = ndefMessage.getRecords()[0];
-            if (ndefRecord.getTnf() == NdefRecord.TNF_MIME_MEDIA &&
-                    ndefRecord.toMimeType().equals("application/json")) {
-                String payload = new String(ndefRecord.getPayload(), StandardCharsets.UTF_8);
-                showAlarmDetails(payload);
-                Toast.makeText(this, "NFC payload", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "NFC tag doesn't contain valid alarm data", Toast.LENGTH_SHORT).show();
-            }
-        } else {
-            Toast.makeText(this, "NFC tag is empty", Toast.LENGTH_SHORT).show();
-        }
+        Toast.makeText(this, "No valid NFC data found", Toast.LENGTH_SHORT).show();
     }
 
     private void showAlarmDetails(String alarmData) {
-        // Fallback in case startActivity doesn't work
-        Toast.makeText(this, "Attempting to show alarm details", Toast.LENGTH_SHORT).show();
+        Log.d(TAG, "Showing alarm details: " + alarmData);
         Intent intent = new Intent(this, AlarmDetailsActivity.class);
         intent.putExtra("ALARM_DATA", alarmData);
         startActivity(intent);
+        finish(); // Finish ReadAlarmActivity after starting AlarmDetailsActivity
     }
 }

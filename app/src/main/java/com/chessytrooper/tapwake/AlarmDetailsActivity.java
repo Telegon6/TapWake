@@ -27,6 +27,7 @@ public class AlarmDetailsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Toast.makeText(this, "alarm created", Toast.LENGTH_SHORT).show();
         setContentView(R.layout.activity_alarm_detail);
 
         alarmTimeTextView = findViewById(R.id.alarmTimeTextView);
@@ -34,6 +35,7 @@ public class AlarmDetailsActivity extends AppCompatActivity {
         alarmDescriptionTextView = findViewById(R.id.alarmDescriptionTextView);
 
         String alarmData = getIntent().getStringExtra("ALARM_DATA");
+        Toast.makeText(this, "received alarm " + alarmData, Toast.LENGTH_SHORT).show();
         parseAlarmData(alarmData);
     }
 
