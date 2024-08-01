@@ -22,6 +22,8 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.appbar.MaterialToolbar;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -49,6 +51,11 @@ public class NfcWriteActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_nfc_write);
+
+        MaterialToolbar toolbar = findViewById(R.id.materialToolbar);
+        setSupportActionBar(toolbar);
+
+        toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
         scanningCircle = findViewById(R.id.scanningCircle);
         scanningBackground = findViewById(R.id.scanningBackground);
@@ -231,7 +238,6 @@ public class NfcWriteActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             Toast.makeText(this, "Error writing to NFC tag", Toast.LENGTH_LONG).show();
             actionButton.setText("Upload");
-            actionButton.setEnabled(true);
         });
     }
 

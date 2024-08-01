@@ -20,6 +20,8 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.appbar.MaterialToolbar;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
@@ -41,6 +43,11 @@ public class ReadAlarmActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_read_alarm);
+
+        MaterialToolbar toolbar = findViewById(R.id.materialToolbar);
+        setSupportActionBar(toolbar);
+
+        toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
         initViews();
         setupNfc();

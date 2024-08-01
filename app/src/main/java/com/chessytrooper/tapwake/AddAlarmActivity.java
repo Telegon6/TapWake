@@ -140,9 +140,7 @@ public class AddAlarmActivity extends AppCompatActivity {
         boolean isDateSelected = !dateEditText.getText().toString().isEmpty();
         boolean isDescriptionEntered = !descriptionEditText.getText().toString().isEmpty();
 
-        addAlarmButton.setEnabled(isDateSelected && isDescriptionEntered && isNameEdit);
-
-        if (isDateSelected && isDescriptionEntered) {
+        if (isDateSelected && isDescriptionEntered && isNameEdit) {
             addAlarmButton.setBackgroundColor(Color.parseColor("#0876E5"));
         }
     }
