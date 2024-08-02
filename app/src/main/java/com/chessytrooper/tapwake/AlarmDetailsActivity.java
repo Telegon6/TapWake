@@ -20,6 +20,7 @@ public class AlarmDetailsActivity extends AppCompatActivity {
     private TextView alarmTimeTextView;
     private TextView alarmDateTextView;
     private TextView alarmDescriptionTextView;
+    private TextView alarmNameTextView;
     private String sound;
     private int duration;
     private Calendar alarmTime;
@@ -30,9 +31,10 @@ public class AlarmDetailsActivity extends AppCompatActivity {
         Toast.makeText(this, "alarm created", Toast.LENGTH_SHORT).show();
         setContentView(R.layout.activity_alarm_detail);
 
+        alarmNameTextView = findViewById(R.id.alarmNameTextView);
         alarmTimeTextView = findViewById(R.id.alarmTimeTextView);
         alarmDateTextView = findViewById(R.id.alarmDateTextView);
-        alarmDescriptionTextView = findViewById(R.id.alarmDescriptionTextView);
+        alarmDescriptionTextView = findViewById(R.id.alarmDescriptionTextView2);
 
         String alarmData = getIntent().getStringExtra("ALARM_DATA");
         Toast.makeText(this, "received alarm " + alarmData, Toast.LENGTH_SHORT).show();
@@ -44,6 +46,7 @@ public class AlarmDetailsActivity extends AppCompatActivity {
             JSONObject alarmJson = new JSONObject(alarmData);
             int hour = alarmJson.getInt("hour");
             int minute = alarmJson.getInt("minute");
+            String name = alarmJson.getString("name");
             String date = alarmJson.getString("date");
             String description = alarmJson.getString("description");
             sound = alarmJson.getString("sound");
@@ -57,6 +60,7 @@ public class AlarmDetailsActivity extends AppCompatActivity {
             alarmTimeTextView.setText(String.format("%02d:%02d", hour, minute));
             alarmDateTextView.setText(date);
             alarmDescriptionTextView.setText(description);
+            alarmNameTextView.setText(name);
 
             scheduleAlarm();
 
@@ -91,5 +95,11 @@ public class AlarmDetailsActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
         finish();
+    }
+
+    private void navigateToWrite() {
+        Intent intent = new Intent(this, NfcWriteActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(intent);
     }
 }

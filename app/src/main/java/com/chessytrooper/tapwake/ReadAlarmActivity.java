@@ -60,6 +60,7 @@ public class ReadAlarmActivity extends AppCompatActivity {
         actionText = findViewById(R.id.actionText);
 
         actionButton.setVisibility(View.GONE);
+        actionText.setText("Place Tag close to your device");
 
         expandingCircleAnimation = (AnimatedVectorDrawable) getDrawable(R.drawable.expanding_circle);
         scanningCircle.setImageDrawable(expandingCircleAnimation);
@@ -126,6 +127,9 @@ public class ReadAlarmActivity extends AppCompatActivity {
                     Toast.makeText(this, "Tag is not NDEF.", Toast.LENGTH_SHORT).show();
                     return;
                 }
+
+                actionText.setText("Tag Detected");
+                actionButton.setVisibility(View.VISIBLE);
 
                 NdefMessage ndefMessage = ndef.getCachedNdefMessage();
                 if (ndefMessage != null) {

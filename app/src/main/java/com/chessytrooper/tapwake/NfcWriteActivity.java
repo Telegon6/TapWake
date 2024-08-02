@@ -42,7 +42,6 @@ public class NfcWriteActivity extends AppCompatActivity {
     private ImageView mark;
     private Button actionButton;
     private TextView actionText;
-    private ObjectAnimator rotationAnimator;
     private AnimatedVectorDrawable expandingCircleAnimation;
     private String alarmData;
     private Tag detectedTag;
@@ -59,6 +58,7 @@ public class NfcWriteActivity extends AppCompatActivity {
 
         scanningCircle = findViewById(R.id.scanningCircle);
         scanningBackground = findViewById(R.id.scanningBackground);
+        mark = findViewById(R.id.mark);
         actionButton = findViewById(R.id.actionButton);
         actionText = findViewById(R.id.actionText);
 
@@ -116,7 +116,6 @@ public class NfcWriteActivity extends AppCompatActivity {
         actionButton.setOnClickListener(v -> {
             if (actionButton.getText().equals("Upload")) {
                 actionButton.setText("Uploading");
-                actionButton.setVisibility(View.GONE);
                 writeNfcTag(detectedTag); // We'll define detectedTag as a class member
             } else if (actionButton.getText().equals("Back to Home")) {
                 navigateToHomepage();
@@ -247,6 +246,7 @@ public class NfcWriteActivity extends AppCompatActivity {
         try {
             json.put("hour", intent.getIntExtra("ALARM_HOUR", 0));
             json.put("minute", intent.getIntExtra("ALARM_MINUTE", 0));
+            json.put("name", intent.getStringExtra("ALARM_NAME"));
             json.put("date", intent.getStringExtra("ALARM_DATE"));
             json.put("description", intent.getStringExtra("ALARM_DESCRIPTION"));
             json.put("sound", intent.getStringExtra("ALARM_SOUND"));
