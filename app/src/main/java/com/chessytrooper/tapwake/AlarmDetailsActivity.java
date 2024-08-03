@@ -97,8 +97,8 @@ public class AlarmDetailsActivity extends AppCompatActivity {
         finish();
     }
 
-    private void navigateToWrite() {
-        Intent intent = new Intent(this, NfcWriteActivity.class);
+    private void navigateToRead() {
+        Intent intent = new Intent(this, ReadAlarmActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(intent);
     }

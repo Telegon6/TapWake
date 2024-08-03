@@ -169,7 +169,7 @@ public class NfcWriteActivity extends AppCompatActivity {
             if (detectedTag != null) {
                 // NFC Tag detected
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "NFC Tag Detected", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(this, "NFC Tag Detected", Toast.LENGTH_SHORT).show();
                     if (expandingCircleAnimation != null && expandingCircleAnimation.isRunning()) {
                         expandingCircleAnimation.stop();
                     }
