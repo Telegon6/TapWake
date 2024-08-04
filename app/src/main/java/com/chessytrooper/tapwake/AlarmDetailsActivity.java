@@ -5,6 +5,8 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -24,6 +26,7 @@ public class AlarmDetailsActivity extends AppCompatActivity {
     private String sound;
     private int duration;
     private Calendar alarmTime;
+    private Button btn_home;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,10 +38,13 @@ public class AlarmDetailsActivity extends AppCompatActivity {
         alarmTimeTextView = findViewById(R.id.alarmTimeTextView);
         alarmDateTextView = findViewById(R.id.alarmDateTextView);
         alarmDescriptionTextView = findViewById(R.id.alarmDescriptionTextView2);
+        btn_home = findViewById(R.id.button3);
 
         String alarmData = getIntent().getStringExtra("ALARM_DATA");
-        Toast.makeText(this, "received alarm " + alarmData, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "received alarm " + alarmData, Toast.LENGTH_SHORT).show();
         parseAlarmData(alarmData);
+
+        btn_home.setOnClickListener(v -> navigateToHomepage());
     }
 
     private void parseAlarmData(String alarmData) {
@@ -97,7 +103,7 @@ public class AlarmDetailsActivity extends AppCompatActivity {
         finish();
     }
 
-    private void navigateToRead() {
+    public void navigateToRead(View view) {
         Intent intent = new Intent(this, ReadAlarmActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(intent);

@@ -38,6 +38,7 @@ public class ReadAlarmActivity extends AppCompatActivity {
     private ImageView scanningBackground;
     private Button actionButton;
     private AnimatedVectorDrawable expandingCircleAnimation;
+    private Tag detectedTag;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +65,13 @@ public class ReadAlarmActivity extends AppCompatActivity {
 
         expandingCircleAnimation = (AnimatedVectorDrawable) getDrawable(R.drawable.expanding_circle);
         scanningCircle.setImageDrawable(expandingCircleAnimation);
+
+        actionButton.setOnClickListener(v -> {
+            if (actionButton.getText().equals("Download")) {
+                actionButton.setText("Downloading");
+                readNfcTag(detectedTag); // We'll define detectedTag as a class member
+            }
+        });
     }
 
     private void setupNfc() {
@@ -120,26 +128,45 @@ public class ReadAlarmActivity extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         String action = intent.getAction();
         if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
-            Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
-            if (tag != null) {
-                Ndef ndef = Ndef.get(tag);
-                if (ndef == null) {
-                    Toast.makeText(this, "Tag is not NDEF.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
+            detectedTag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+            if (detectedTag != null) {
+                // NFC Tag detected
+                runOnUiThread(() -> {
+                    //Toast.makeText(this, "NFC Tag Detected", Toast.LENGTH_SHORT).show();
+                    if (expandingCircleAnimation != null && expandingCircleAnimation.isRunning()) {
+                        expandingCircleAnimation.stop();
+                    }
+                    scanningCircle.setVisibility(View.GONE);
+                    scanningBackground.setVisibility(View.VISIBLE);
+                    actionText.setText("Tag detected");
+                    actionButton.setText("Download");
+                    actionButton.setVisibility(View.VISIBLE);
+                    //actionButton.setEnabled(true);
+                });
+            }
 
-                actionText.setText("Tag Detected");
-                actionButton.setVisibility(View.VISIBLE);
+        }
+    }
 
-                NdefMessage ndefMessage = ndef.getCachedNdefMessage();
-                if (ndefMessage != null) {
-                    for (NdefRecord ndefRecord : ndefMessage.getRecords()) {
-                        if (ndefRecord.getTnf() == NdefRecord.TNF_MIME_MEDIA &&
-                                ndefRecord.toMimeType().equals("application/json")) {
-                            String payload = new String(ndefRecord.getPayload(), StandardCharsets.UTF_8);
-                            showAlarmDetails(payload);
-                            return;
-                        }
+    private void readNfcTag(Tag tag){
+        if (tag != null) {
+            Ndef ndef = Ndef.get(tag);
+            if (ndef == null) {
+                Toast.makeText(this, "Tag is not NDEF.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+//            actionText.setText("Tag Detected");
+//            actionButton.setVisibility(View.VISIBLE);
+
+            NdefMessage ndefMessage = ndef.getCachedNdefMessage();
+            if (ndefMessage != null) {
+                for (NdefRecord ndefRecord : ndefMessage.getRecords()) {
+                    if (ndefRecord.getTnf() == NdefRecord.TNF_MIME_MEDIA &&
+                            ndefRecord.toMimeType().equals("application/json")) {
+                        String payload = new String(ndefRecord.getPayload(), StandardCharsets.UTF_8);
+                        showAlarmDetails(payload);
+                        return;
                     }
                 }
             }

@@ -31,12 +31,12 @@ public class AddAlarmActivity extends AppCompatActivity {
     private TimePicker timePicker;
     private EditText dateEditText;
     private EditText descriptionEditText;
-    private EditText editTextText;
+    private EditText nameEditText;
     private Button addAlarmButton;
     private TextView wordCountTextView;
     private Calendar calendar;
     private static final int MAX_WORDS = 100;
-    private static final int RINGTONE_PICKER_REQUEST_CODE = 1;
+    //private static final int RINGTONE_PICKER_REQUEST_CODE = 1;
     private Uri selectedAlarmSound;
 
     @Override
@@ -55,16 +55,18 @@ public class AddAlarmActivity extends AppCompatActivity {
         timePicker = findViewById(R.id.timePicker);
         dateEditText = findViewById(R.id.editTextDate);
         descriptionEditText = findViewById(R.id.editTextDescription);
-        editTextText = findViewById(R.id.editTextText);
+        nameEditText = findViewById(R.id.editTextText);
         addAlarmButton = findViewById(R.id.button);
         wordCountTextView = findViewById(R.id.textView3);
 
         calendar = Calendar.getInstance();
 
         addAlarmButton.setBackgroundColor(Color.parseColor("#808080"));
+        addAlarmButton.setEnabled(false);
 
         setupDatePicker();
         setupDescriptionEditText();
+        setupNameEditText();
         updateAddAlarmButtonState();
 
         addAlarmButton.setOnClickListener(v -> addAlarm());
@@ -85,6 +87,21 @@ public class AddAlarmActivity extends AppCompatActivity {
                     calendar.get(Calendar.DAY_OF_MONTH));
             datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
             datePickerDialog.show();
+        });
+    }
+
+    private void setupNameEditText() {
+        nameEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                updateAddAlarmButtonState();
+            }
         });
     }
 
@@ -136,36 +153,38 @@ public class AddAlarmActivity extends AppCompatActivity {
     }
 
     private void updateAddAlarmButtonState() {
-        boolean isNameEdit = !editTextText.getText().toString().isEmpty();
-        boolean isDateSelected = !dateEditText.getText().toString().isEmpty();
-        boolean isDescriptionEntered = !descriptionEditText.getText().toString().isEmpty();
+        boolean isNameEdit = !nameEditText.getText().toString().trim().isEmpty();
+        boolean isDateSelected = !dateEditText.getText().toString().trim().isEmpty();
+        boolean isDescriptionEntered = !descriptionEditText.getText().toString().trim().isEmpty();
 
-        if (isDateSelected && isDescriptionEntered && isNameEdit) {
-            addAlarmButton.setBackgroundColor(Color.parseColor("#0876E5"));
-        }
+        boolean allFieldsFilled = isDateSelected && isDescriptionEntered && isNameEdit;
+
+        addAlarmButton.setEnabled(allFieldsFilled);
+        addAlarmButton.setBackgroundColor(allFieldsFilled ? Color.parseColor("#0876E5") : Color.parseColor("#808080"));
     }
 
-    private void openRingtonePicker() {
-        Intent intent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
-        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM);
-        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select Alarm Sound");
-        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, selectedAlarmSound);
-        startActivityForResult(intent, RINGTONE_PICKER_REQUEST_CODE);
-    }
+//    private void openRingtonePicker() {
+//        Intent intent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
+//        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM);
+//        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select Alarm Sound");
+//        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, selectedAlarmSound);
+//        startActivityForResult(intent, RINGTONE_PICKER_REQUEST_CODE);
+//    }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == RINGTONE_PICKER_REQUEST_CODE && resultCode == RESULT_OK) {
-            selectedAlarmSound = data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
-        }
-    }
+//    @Override
+//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+//        super.onActivityResult(requestCode, resultCode, data);
+//        if (requestCode == RINGTONE_PICKER_REQUEST_CODE && resultCode == RESULT_OK) {
+//            selectedAlarmSound = data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+//        }
+//    }
 
     private void addAlarm() {
         int hour = timePicker.getHour();
         int minute = timePicker.getMinute();
         String date = dateEditText.getText().toString();
         String description = descriptionEditText.getText().toString();
+        String name = nameEditText.getText().toString();
 
         Calendar current = Calendar.getInstance();
         Calendar selected = (Calendar) calendar.clone();
@@ -181,6 +200,7 @@ public class AddAlarmActivity extends AppCompatActivity {
         intent.putExtra("ALARM_HOUR", hour);
         intent.putExtra("ALARM_MINUTE", minute);
         intent.putExtra("ALARM_DATE", date);
+        intent.putExtra("ALARM_NAME", name);
         intent.putExtra("ALARM_DESCRIPTION", description);
         intent.putExtra("ALARM_SOUND", selectedAlarmSound.toString());
         intent.putExtra("ALARM_DURATION", 5 * 60 * 1000); // 5 minutes in milliseconds
